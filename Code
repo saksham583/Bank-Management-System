@@ -1,0 +1,145 @@
+import mysql.connector
+
+# Global variables for database connection
+connection = None
+cursor = None
+
+def connect_to_database():
+    global connection, cursor
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            database='bank_management',
+            user='root',
+            password='123456'
+        )
+        cursor = connection.cursor()
+        print("Connected to MySQL database")
+    except mysql.connector.Error as e:
+        print(f"Error connecting to MySQL database: {e}")
+        exit(1)
+
+def create_table():
+    create_table_query = """
+    CREATE TABLE IF NOT EXISTS accounts (
+        account_no INT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        type CHAR(1) NOT NULL,
+        balance DECIMAL(10, 2) NOT NULL
+    )
+    """
+    cursor.execute(create_table_query)
+    connection.commit()
+
+def new_account():
+    account_no = int(input("Enter the account no: "))
+    name = input("Enter the account holder name: ")
+    type = input("Enter the type of account [C/S]: ").upper()
+    balance = float(input("Enter initial balance: "))
+
+    query = "INSERT INTO accounts (account_no, name, type, balance) VALUES (%s, %s, %s, %s)"
+    values = (account_no, name, type, balance)
+    cursor.execute(query, values)
+    connection.commit()
+    print("Account created successfully!")
+
+def deposit_amount():
+    account_no = int(input("Enter the account no: "))
+    amount = float(input("Enter the amount to deposit: "))
+
+    query = "UPDATE accounts SET balance = balance + %s WHERE account_no = %s"
+    values = (amount, account_no)
+    cursor.execute(query, values)
+    connection.commit()
+    print("Amount deposited successfully!")
+
+def withdraw_amount():
+    account_no = int(input("Enter the account no: "))
+    amount = float(input("Enter the amount to withdraw: "))
+
+    query = "UPDATE accounts SET balance = balance - %s WHERE account_no = %s AND balance >= %s"
+    values = (amount, account_no, amount)
+    cursor.execute(query, values)
+    if cursor.rowcount == 0:
+        print("Insufficient balance or account not found!")
+    else:
+        connection.commit()
+        print("Amount withdrawn successfully!")
+
+def balance_enquiry():
+    account_no = int(input("Enter the account no: "))
+
+    query = "SELECT balance FROM accounts WHERE account_no = %s"
+    cursor.execute(query, (account_no,))
+    result = cursor.fetchone()
+    if result:
+        print(f"Current balance: {result[0]}")
+    else:
+        print("Account not found!")
+
+def all_account_holder_list():
+    query = "SELECT * FROM accounts"
+    cursor.execute(query)
+    results = cursor.fetchall()
+    for row in results:
+        print(f"Account No: {row[0]}, Name: {row[1]}, Type: {row[2]}, Balance: {row[3]}")
+
+def close_account():
+    account_no = int(input("Enter the account no to close: "))
+
+    query = "DELETE FROM accounts WHERE account_no = %s"
+    cursor.execute(query, (account_no,))
+    if cursor.rowcount == 0:
+        print("Account not found!")
+    else:
+        connection.commit()
+        print("Account closed successfully!")
+
+def modify_account():
+    account_no = int(input("Enter the account no to modify: "))
+    new_name = input("Enter new account holder name: ")
+    new_type = input("Enter new account type [C/S]: ").upper()
+
+    query = "UPDATE accounts SET name = %s, type = %s WHERE account_no = %s"
+    values = (new_name, new_type, account_no)
+    cursor.execute(query, values)
+    if cursor.rowcount == 0:
+        print("Account not found!")
+    else:
+        connection.commit()
+        print("Account modified successfully!")
+
+connect_to_database()
+create_table()
+
+print("\nMAIN MENU")
+print("1. NEW ACCOUNT")
+print("2. DEPOSIT AMOUNT")
+print("3. WITHDRAW AMOUNT")
+print("4. BALANCE ENQUIRY")
+print("5. ALL ACCOUNT HOLDER LIST")
+print("6. CLOSE AN ACCOUNT")
+print("7. MODIFY AN ACCOUNT")
+print("8. EXIT")
+choice = input("Select Your Option (1-8): ")
+
+while True:
+        if choice == '1':
+            new_account()
+        elif choice == '2':
+            deposit_amount()
+        elif choice == '3':
+            withdraw_amount()
+        elif choice == '4':
+            balance_enquiry()
+        elif choice == '5':
+            all_account_holder_list()
+        elif choice == '6':
+            close_account()
+        elif choice == '7':
+            modify_account()
+        elif choice == '8':
+            print("Thank you for using the Bank Management System!")
+            break
+        else:
+            print("Invalid option. Please try again.")
